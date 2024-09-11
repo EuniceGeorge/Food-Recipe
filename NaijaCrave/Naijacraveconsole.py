@@ -45,7 +45,7 @@ class Direction(db.Model):
 
     def __repr__(self):
      return f'<Direction {self.direction}>'
-    
+"""    
 def add_recipe():
     recipe_name = input("Enter recipe title: ")
     new_recipe = Recipe(recipe_name=recipe_name)
@@ -88,7 +88,7 @@ def search_recipes():
     else:
         print("No matching recipes found.")
 
-"""def search_recipes():
+def search_recipes():
     search_item = input("Enter ingredient (separated by ','): ").split(',')
     if search_item:
         recipes = Recipe.query.join(Recipe.ingredients).filter(
@@ -106,7 +106,6 @@ def search_recipes():
 
     for recipe in recipes:
         print("\n" + "=" * 20)
-        print(f"Recipe: {recipe.recipe_name}")
 
         print("\ningredient:")
         for ing in recipe.ingredients:
@@ -119,7 +118,7 @@ def search_recipes():
         print("=" * 20)
 
         print(f"\nTotal recipes found: {len(recipes)}")
-"""
+
 def main_menu():
     while True:
         print("\n--- Naija Crave Recipe Console ---")
@@ -141,4 +140,4 @@ def main_menu():
 
 if __name__ == '__main__':
     with app.app_context():
-        main_menu()
+        main_menu()"""
