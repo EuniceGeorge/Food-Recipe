@@ -15,21 +15,15 @@ db = SQLAlchemy(app)
 class Ingredient(db.Model):
     __tablename__ = 'ingredients'
     ingredient_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    ingredient_name = db.Column(db.String(255), nullable=False)
-    recipes = db.relationship('Recipe', secondary='ingredient_recipe', back_populates='ingredients')
-
-def __repr__(self):
-        return f'<Ingredient {self.ingredient_name}>'
+    ingredient_name = db.Column(db.String(255), unique=True, nullable=False)
+    recipes = db.relationship('Recipe', secondary='ingredient_recipe',back_populates='ingredients')
 
 class Recipe(db.Model):
     __tablename__ = 'recipe'
     recipe_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    recipe_name = db.Column(db.String(255), nullable=False)
+    recipe_name = db.Column(db.String(255), unique=True, nullable=False)
     ingredients = db.relationship('Ingredient', secondary='ingredient_recipe', back_populates='recipes')
     directions = db.relationship('Direction', back_populates='recipe')
-
-    def __repr__(self):
-        return f'<Recipe {self.recipe_name}>'
 
 class IngredientRecipe(db.Model):
     __tablename__ = 'ingredient_recipe'
@@ -43,31 +37,49 @@ class Direction(db.Model):
     direction = db.Column(db.Text, nullable=False)
     recipe = db.relationship('Recipe', back_populates='directions')
 
-    def __repr__(self):
-     return f'<Direction {self.direction}>'
-"""    
+recipe_dict = {}
 def add_recipe():
     recipe_name = input("Enter recipe title: ")
-    new_recipe = Recipe(recipe_name=recipe_name)
-    db.session.add(new_recipe)
-    db.session.flush()#to assign a new ID to a recipe
+    recipe_exist = Recipe.query.filter_by(recipe_name=recipe_name).first()
+    if recipe_exist:
+        print(f"Recipe '{recipe_name}' already exist")
+        return
+    else:
+        new_recipe = Recipe(recipe_name=recipe_name)
+        db.session.add(new_recipe)
+        db.session.flush()#to assign a new ID to a recipe
 
     ingredients_input = input("Enter ingredients (comma-separated): ").split(',')
+    ingredient_list = []
     for ingredient_name in ingredients_input:
         ingredient_name = ingredient_name.strip()
-        ingredient = Ingredient(ingredient_name=ingredient_name)
-        db.session.add(ingredient)
-
-        new_recipe.ingredients.append(ingredient)
+        ingredient_exist = Ingredient.query.filter_by(ingredient_name=ingredient_name).first()
+        if ingredient_exist:
+            print(f"Ingredient '{ingredient_name}' already exist")
+            new_recipe.ingredients.append(ingredient_exist)
+            #if ingredient exist, it is appended without inserting it as a new record. it skips the insertion and directly associates the existing ingredient with the new recipe.
+        else:
+            ingredient = Ingredient(ingredient_name=ingredient_name)
+            db.session.add(ingredient)
+            new_recipe.ingredients.append(ingredient)
+            ingredient_list.append(ingredient_name)
 
     direction_input = input("Enter cooking instructions(separate with ';'): ").split(';')
+    direction_list = []
     for direction_text in direction_input:
         direction_text = direction_text.strip()
         if direction_text:
             direction = Direction(direction=direction_text, recipe=new_recipe)
             db.session.add(direction)
+            direction_list.append(direction_text)
 
     db.session.commit()
+
+    recipe_dict[recipe_name] = {
+            "ingredients": ingredient_list,
+            "directions": direction_list
+            }
+
     print(f"Recipe '{recipe_name}' added successfully!")
 
 def search_recipes():
@@ -76,48 +88,22 @@ def search_recipes():
 
     # Search for recipes that contain any of the entered ingredients
     recipes = Recipe.query.join(Recipe.ingredients).filter(
-        or_(*[func.lower(Recipe.ingredients).like(f'%{ing}%') for ing in search_item])
-    ).all()
+            or_(Recipe.ingredients for ing in search_item)).all()
 
     if recipes:
         print("\nMatching Recipes:")
         for recipe in recipes:
+            print("\n" + "=" * 50)
             print(f"\nRecipe: {recipe.recipe_name}")
-            print(f"Ingredients: {', '.join([ing.ingredient_name for ing in recipe.ingredients])}")
-            print(f"Direction: {recipe.directions}")
+            print(f"\nIngredients: {', '.join([ing.ingredient_name for ing in recipe.ingredients])}")
+            print("\nDirections: ")
+            for i, direct in enumerate(recipe.directions, 1):
+                print(f"{i}. {direct.direction}")
+
+            print("=" * 50)
+
     else:
         print("No matching recipes found.")
-
-def search_recipes():
-    search_item = input("Enter ingredient (separated by ','): ").split(',')
-    if search_item:
-        recipes = Recipe.query.join(Recipe.ingredients).filter(
-                or_(
-                    Recipe.recipe_name.ilike(f'%{search_item}%'),
-                    Ingredient.ingredient_name.ilike(f'%{search_item}%')
-                    )
-                ).distinct().all()
-    else:
-        recipes = Recipe.query.all()
-
-    if not recipes:
-        print("No response")
-        return
-
-    for recipe in recipes:
-        print("\n" + "=" * 20)
-
-        print("\ningredient:")
-        for ing in recipe.ingredients:
-            print(f"- {ing.ingredient_name}")
-
-        print("\nDirections: ")
-        for i, direct in enumerate(recipe.directions, 1):
-            print(f"{i}. {direct.direction}")
-
-        print("=" * 20)
-
-        print(f"\nTotal recipes found: {len(recipes)}")
 
 def main_menu():
     while True:
@@ -140,4 +126,4 @@ def main_menu():
 
 if __name__ == '__main__':
     with app.app_context():
-        main_menu()"""
+        main_menu()
